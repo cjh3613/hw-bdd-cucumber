@@ -1,6 +1,10 @@
-class Movie < ActiveRecord::Base
   
-  def self.all_ratings
-    %w(G PG PG-13 NC-17 R)
-  end
+class Movie < ActiveRecord::Base
+    def self.all_ratings
+       return pluck(:rating).uniq
+    end
+
+    def self.accompany_ratings(ratings)
+       where(rating: ratings.keys)
+    end
 end

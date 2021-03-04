@@ -7,26 +7,40 @@ class MoviesController < ApplicationController
   end
 
   def index
-    sort = params[:sort] || session[:sort]
-    case sort
-    when 'title'
-      ordering,@title_header = {:title => :asc}, 'bg-warning hilite'
-    when 'release_date'
-      ordering,@date_header = {:release_date => :asc}, 'bg-warning hilite'
+    if params[:ratings].nil? and params[:commit] 
+      session.delete(:movie_ratings) 
+      session.delete(:sort) 
     end
+    
     @all_ratings = Movie.all_ratings
-    @selected_ratings = params[:ratings] || session[:ratings] || {}
-
-    if @selected_ratings == {}
-      @selected_ratings = Hash[@all_ratings.map {|rating| [rating, rating]}]
+    @movie_ratings = params[:ratings] || session[:ratings] || Hash[@all_ratings.map {|rating| [rating, 1]}]
+    
+    sort = params[:sort] || session[:sort]
+    
+    if sort == "movies_title"
+      order = {title: :asc}
+      @title_heading = 'bg-warning'
+      @release_date_heading = ''
     end
+    
+    if sort == "release_date"
+      order = {release_date: :asc}
+      @release_date_heading = 'bg-warning'
+      @title_heading = ''
+    end
+    
 
-    if params[:sort] != session[:sort] or params[:ratings] != session[:ratings]
+    if params[:sort] != session[:sort] || params[:ratings] != session[:ratings]
       session[:sort] = sort
-      session[:ratings] = @selected_ratings
-      redirect_to :sort => sort, :ratings => @selected_ratings and return
+      session[:ratings] = @movie_ratings
+      
+      if !params[:ratings] && !params[:sort] && params[:home]
+        session[:ratings] = Hash[@all_ratings.map {|rating| [rating, 1]}]
+      end
+      redirect_to sort: session[:sort], ratings: session[:ratings] and return
     end
-    @movies = Movie.where(rating: @selected_ratings.keys).order(ordering)
+    
+    @movies = Movie.accompany_ratings(@movie_ratings).order(order)
   end
 
   def new
